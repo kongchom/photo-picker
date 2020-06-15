@@ -69,6 +69,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_weight="0.8"
+                android:background="@android:color/white"
                 />
 
             <FrameLayout
@@ -103,14 +104,16 @@
         android:id="@+id/photo_picker_tab_layout_folder"
         android:layout_width="match_parent"
         android:layout_height="@dimen/_45sdp"
+        android:background="@color/colorAccent"
+        app:tabMode="scrollable"
         app:layout_constraintTop_toBottomOf="@id/photo_picker_vp_container"
-        app:layout_constraintBottom_toTopOf="@id/photo_picker_adMob_view"
+        app:layout_constraintBottom_toTopOf="@id/photo_picker_adMob_container"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
         />
 
     <FrameLayout
-        android:id="@+id/photo_picker_adMob_view"
+        android:id="@+id/photo_picker_adMob_container"
         android:layout_width="match_parent"
         android:layout_height="@dimen/_50sdp"
         app:layout_constraintBottom_toBottomOf="parent"
