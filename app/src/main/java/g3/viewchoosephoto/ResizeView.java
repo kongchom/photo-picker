@@ -12,9 +12,9 @@ public class ResizeView {
         return Resources.getSystem().getDisplayMetrics();
     }
 
-    public static void resizeView(View view, int width, int heigth) {
+    public static void resizeView(View view, int width, int height) {
         int pW = getDisplayInfo().widthPixels * width / WIDTH_STAND;
-        int pH = pW * heigth / width;
+        int pH = pW * height / width;
         ViewGroup.LayoutParams params = view.getLayoutParams();
         params.width = pW;
         params.height = pH;
