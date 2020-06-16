@@ -3,6 +3,8 @@ package g3.viewchoosephoto
 import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.Fragment
+import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
@@ -14,6 +16,7 @@ class PhotoPickerActivity : AppCompatActivity() {
     private var mAdapterPhoto: PhotoAdapter? = null
     private var mLocalImages: ArrayList<LocalImage>? = null
     private var mAlbumImages: ArrayList<AlbumImage>? = null
+    private var mPhotoChosen: ArrayList<LocalImage>? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -33,24 +36,33 @@ class PhotoPickerActivity : AppCompatActivity() {
 
     private fun initData() {
         mAlbumImages = ImageUtils.getAllImage(applicationContext) as ArrayList<AlbumImage>?
-        Log.d("congnm12", (mAlbumImages?.get(1)?.name).toString())
         mLocalImages?.addAll(mAlbumImages!![1]!!.localImages)
     }
 
     private fun setUpViewPagerWithTabLayout() {
         viewPager = findViewById(R.id.photo_picker_view_pager)
         tabLayout = findViewById(R.id.photo_picker_tab_layout_folder)
-        for (i in 0 until mAlbumImages!!.size - 1) {
-            tabLayout.addTab(tabLayout.newTab().setText(mAlbumImages?.get(i)?.name))
-        }
         mAdapterPhoto = PhotoAdapter(applicationContext,mLocalImages)
-        viewPager.adapter = mAdapterPhoto
-        viewPager.orientation = ViewPager2.ORIENTATION_HORIZONTAL
+//        viewPager.adapter = FolderPhotoAdapter(mAlbumImages!!,applicationContext)
+        viewPager.adapter = object: FragmentStateAdapter(this) {
+            override fun getItemCount(): Int {
+                return mAlbumImages!!.size
+            }
 
+            override fun createFragment(position: Int): Fragment {
+                Log.d("congnm","onCreateFragmentPager")
+                return PhotoViewerFragment.newInstance(mAlbumImages!!, position)
+            }
+        }
+
+        viewPager.orientation = ViewPager2.ORIENTATION_HORIZONTAL
+        TabLayoutMediator(tabLayout, viewPager,
+            TabLayoutMediator.TabConfigurationStrategy { tab, position ->
+                tab.text = mAlbumImages!![position].name
+            }).attach()
     }
 
     private fun initViews() {
 
     }
-
 }
