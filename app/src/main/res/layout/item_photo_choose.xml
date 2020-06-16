@@ -9,7 +9,7 @@
         android:id="@+id/item_photo_choose_layout_img"
         android:layout_width="@dimen/_70sdp"
         android:layout_height="@dimen/_70sdp"
-        android:layout_marginStart="@dimen/_10sdp"
+        android:layout_marginEnd="@dimen/_10sdp"
         android:layout_marginTop="@dimen/_10sdp">
 
         <androidx.cardview.widget.CardView
@@ -29,6 +29,7 @@
         android:id="@+id/imgRemove"
         android:layout_width="@dimen/_20sdp"
         android:layout_height="@dimen/_20sdp"
-        android:background="@drawable/abc_vector_test" />
+        android:layout_marginStart="@dimen/_53sdp"
+        android:background="@drawable/ic_clear"/>
 
 </RelativeLayout>

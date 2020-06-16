@@ -12,9 +12,9 @@ import kotlinx.android.synthetic.main.fragment_folder_photo_viewer.*
 class PhotoViewerFragment: Fragment() {
 
     private var mLocalImages: ArrayList<LocalImage> = ArrayList()
-    private var onItemClick : PhotoPickerActivity.ListenFromFragment? = null
+    private var onItemClick : PhotoPickerActivity.ItemClickFromPagerFragment? = null
 
-    fun setListener(listener: PhotoPickerActivity.ListenFromFragment) {
+    fun setListener(listener: PhotoPickerActivity.ItemClickFromPagerFragment) {
         onItemClick = listener
     }
 
