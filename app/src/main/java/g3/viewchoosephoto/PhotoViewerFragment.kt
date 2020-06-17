@@ -1,7 +1,6 @@
 package g3.viewchoosephoto
 
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -19,7 +18,6 @@ class PhotoViewerFragment: Fragment() {
     }
 
     private val onClickItemPhotoListener = PhotoAdapter.OnClickItemPhotoListener { position ->
-        Log.d("congnm",mLocalImages[position].path)
         onItemClick?.onItemClickInFragment(position)
     }
 
@@ -32,7 +30,6 @@ class PhotoViewerFragment: Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        Log.d("congnm","onViewCreated")
         initDataRecyclerView()
     }
 
@@ -56,10 +53,5 @@ class PhotoViewerFragment: Fragment() {
             return fragment
         }
         const val KEY_ALBUM_LIST = "KEY_ALBUM_LIST"
-    }
-
-    override fun onDestroyView() {
-        Log.d("congnm","onDestroyView")
-        super.onDestroyView()
     }
 }

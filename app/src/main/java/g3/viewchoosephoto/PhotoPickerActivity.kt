@@ -11,7 +11,6 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
-import android.util.Log
 import android.view.View
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AlertDialog
@@ -26,7 +25,6 @@ import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
 import kotlinx.android.synthetic.main.activity_photo_picker.*
 import java.io.File
-
 
 class PhotoPickerActivity : AppCompatActivity() {
 
@@ -54,13 +52,11 @@ class PhotoPickerActivity : AppCompatActivity() {
 
     private var onItemClick = object : ItemClickFromPagerFragment {
         override fun onItemClickInFragment(position: Int) {
-            Log.d("congnm lis", position.toString())
             container_rv_chosen_image.visibility = View.VISIBLE
             mPhotoChoose.add(mAlbumImages?.get(mFolderPosition)!!.localImages[position])
             if (mPhotoChoose.size >= 3) {
                 photo_picker_fab_next.visibility = View.VISIBLE
             }
-            Log.d("congnm", mPhotoChoose.size.toString())
             mLayoutManagerPhotoChoose?.scrollToPosition(mPhotoChoose.size - 1)
             mAdapterPhotoChoose?.notifyDataSetChanged()
         }
