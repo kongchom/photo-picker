@@ -95,6 +95,7 @@
             android:layout_marginEnd="@dimen/_16sdp"
             android:src="@drawable/ic_next"
             android:visibility="gone"
+            app:fabSize="mini"
             app:layout_anchor="@id/photo_picker_view_pager"
             app:layout_anchorGravity="bottom|right|end" />
 
