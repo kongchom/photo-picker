@@ -4,4 +4,7 @@
     <string name="text_number">(%1$d/60)</string>
     <string name="please_select_at_least_three_photo">Vui lòng chọn ít nhất 3 ảnh</string>
     <string name="chosen">Đã chọn:</string>
+    <string name="do_you_want_to_save_this_image">Do you want to save this image?</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
 </resources>

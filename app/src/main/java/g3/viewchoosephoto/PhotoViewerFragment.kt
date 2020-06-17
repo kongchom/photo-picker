@@ -12,9 +12,14 @@ class PhotoViewerFragment: Fragment() {
 
     private var mLocalImages: ArrayList<LocalImage> = ArrayList()
     private var onItemClick : PhotoPickerActivity.ItemClickFromPagerFragment? = null
+    private var photoAdapter: PhotoAdapter? = null
 
     fun setListener(listener: PhotoPickerActivity.ItemClickFromPagerFragment) {
         onItemClick = listener
+    }
+
+    fun updatePhotoAdapter() {
+        photoAdapter?.notifyDataSetChanged()
     }
 
     private val onClickItemPhotoListener = PhotoAdapter.OnClickItemPhotoListener { position ->
@@ -36,8 +41,8 @@ class PhotoViewerFragment: Fragment() {
     private fun initDataRecyclerView() {
         val args = arguments
         mLocalImages = args?.getSerializable(KEY_ALBUM_LIST) as ArrayList<LocalImage>
-        val photoAdapter = PhotoAdapter(context,mLocalImages)
-        photoAdapter.setOnClickItemPhotoListener(onClickItemPhotoListener)
+        photoAdapter = PhotoAdapter(context,mLocalImages)
+        photoAdapter?.setOnClickItemPhotoListener(onClickItemPhotoListener)
         folder_photo_viewer_recycler_view.adapter = photoAdapter
         folder_photo_viewer_recycler_view.layoutManager = GridLayoutManager(context,3, GridLayoutManager.VERTICAL,false)
     }

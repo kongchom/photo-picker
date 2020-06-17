@@ -7,10 +7,12 @@ import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.MediaScannerConnection.scanFile
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
+import android.util.Log
 import android.view.View
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AlertDialog
@@ -40,15 +42,17 @@ class PhotoPickerActivity : AppCompatActivity() {
     private var onClickBackButton: OnClickBackButton? = null
     private var onClickNextButton: OnClickNextButton? = null
 
-    val REQUEST_CODE_CAMERA = 111
-    val MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE = 102
-    val OUTPUT_FOLDER_NAME = "VideoMakerSlideshow"
-    val DEFAULT_FOLDER_OUTPUT =
-        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)
-            .toString() + "/" + OUTPUT_FOLDER_NAME
-    val DEFAULT_FOLDER_OUTPUT_TEMP = "$DEFAULT_FOLDER_OUTPUT/.Temp"
+    companion object {
+        const val REQUEST_CODE_CAMERA = 111
+        const val MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE = 102
+        const val OUTPUT_FOLDER_NAME = "VideoMakerSlideshow"
+        private val DEFAULT_FOLDER_OUTPUT =
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)
+                .toString() + "/" + OUTPUT_FOLDER_NAME
+        val DEFAULT_FOLDER_OUTPUT_TEMP = "$DEFAULT_FOLDER_OUTPUT/.Temp"
 
-    val PROVIDER = "g3.viewchoosephoto.provider"
+        const val PROVIDER = "g3.viewchoosephoto.provider"
+    }
 
     private var onItemClick = object : ItemClickFromPagerFragment {
         override fun onItemClickInFragment(position: Int) {
@@ -88,6 +92,12 @@ class PhotoPickerActivity : AppCompatActivity() {
         initViews()
     }
 
+    override fun onResume() {
+        mAlbumImages = ImageUtils.getAllImage(applicationContext) as ArrayList<AlbumImage>?
+        Log.d("congnm","activity onResume mAlumImages size: ${mAlbumImages?.get(0)?.localImages!!.size}")
+        super.onResume()
+    }
+
     private fun onPermissionFolder() {
         PermissionNewVideoUtils.askForPermissionFolder(
             this,
@@ -110,6 +120,7 @@ class PhotoPickerActivity : AppCompatActivity() {
 
             override fun createFragment(position: Int): Fragment {
                 mCurrentFrag = PhotoViewerFragment.newInstance(mAlbumImages!!, position)
+                Log.d("congnm","createFragmentPager mAlumImages size: ${mAlbumImages?.get(0)?.localImages!!.size}")
                 mCurrentFrag.setListener(onItemClick)
                 return mCurrentFrag
             }
@@ -299,6 +310,7 @@ class PhotoPickerActivity : AppCompatActivity() {
             if (requestCode == REQUEST_CODE_CAMERA) {
                 val localImage = LocalImage()
                 localImage.path = pathSaveImageFromCamera
+                promptUserSaveImage()
                 if (mPhotoChoose.size < 60) {
                     mPhotoChoose.add(localImage)
                     container_rv_chosen_image.visibility = View.VISIBLE
@@ -310,6 +322,36 @@ class PhotoPickerActivity : AppCompatActivity() {
                     mAdapterPhotoChoose!!.notifyDataSetChanged()
                 }
             }
+        }
+    }
+
+    private fun promptUserSaveImage() {
+        showDialogConfirm(
+            this,
+            message = R.string.do_you_want_to_save_this_image,
+            idNo = R.string.no,
+            idYes = R.string.yes,
+            isCancel = false,
+            onYes = DialogInterface.OnClickListener { _, _ -> onYesSaveImage() },
+            onNo = DialogInterface.OnClickListener { _, _ ->  }
+            )
+    }
+
+    private fun onYesSaveImage() {
+        val targetFile = File(this.mAlbumImages?.get(0)!!.path + System.currentTimeMillis() + ".jpg")
+        Log.d("congnm","targetFilePath = ${targetFile.absolutePath} - pathSaveImage: $pathSaveImageFromCamera")
+        File(pathSaveImageFromCamera!!).copyTo(
+            target = targetFile,
+            overwrite = false
+        )
+        scanFile(
+            this, arrayOf(targetFile.absolutePath),
+            null
+        ) { path, uri ->
+            viewPager.currentItem = 0
+            mAlbumImages = ImageUtils.getAllImage(applicationContext) as ArrayList<AlbumImage>?
+            Log.d("congnm","activity onResume mAlumImages size: ${mAlbumImages?.get(0)?.localImages!!.size}")
+            mCurrentFrag.updatePhotoAdapter()
         }
     }
 
