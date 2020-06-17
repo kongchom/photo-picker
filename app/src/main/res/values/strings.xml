@@ -1,5 +1,7 @@
 <resources>
     <string name="app_name">ViewChoosePhoto</string>
 
-    <string name="text_number">( %1$d Selected / 60 )</string>
+    <string name="text_number">(%1$d/60)</string>
+    <string name="please_select_at_least_three_photo">Vui lòng chọn ít nhất 3 ảnh</string>
+    <string name="chosen">Đã chọn:</string>
 </resources>

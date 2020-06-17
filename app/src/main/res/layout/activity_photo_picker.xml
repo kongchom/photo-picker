@@ -71,20 +71,42 @@
                 android:layout_weight="0.8"
                 android:background="@android:color/darker_gray" />
 
-            <FrameLayout
+            <RelativeLayout
                 android:id="@+id/container_rv_chosen_image"
                 android:layout_width="match_parent"
-                android:layout_height="@dimen/_90sdp"
-                android:paddingTop="@dimen/_16sdp"
-                android:paddingBottom="@dimen/_8sdp"
+                android:layout_height="@dimen/_110sdp"
+                android:paddingBottom="@dimen/_10sdp"
+                android:orientation="vertical"
                 android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/photo_picker_tv_please"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/please_select_at_least_three_photo" />
+
+                <TextView
+                    android:id="@+id/photo_picker_tv_choose"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@id/photo_picker_tv_please"
+                    android:text="@string/chosen"/>
+
+                <TextView
+                    android:id="@+id/photo_picker_tv_number_of_chosen_photo"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@+id/photo_picker_tv_please"
+                    android:layout_alignEnd="@id/photo_picker_tv_choose"
+                    android:layout_marginEnd="@dimen/_minus40sdp" />
 
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/photo_picker_rv_chosen_image"
+                    android:layout_below="@id/photo_picker_tv_choose"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent" />
 
-            </FrameLayout>
+            </RelativeLayout>
 
         </LinearLayout>
 

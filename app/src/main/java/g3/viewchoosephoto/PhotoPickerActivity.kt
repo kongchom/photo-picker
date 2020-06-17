@@ -52,13 +52,16 @@ class PhotoPickerActivity : AppCompatActivity() {
 
     private var onItemClick = object : ItemClickFromPagerFragment {
         override fun onItemClickInFragment(position: Int) {
-            container_rv_chosen_image.visibility = View.VISIBLE
-            mPhotoChoose.add(mAlbumImages?.get(mFolderPosition)!!.localImages[position])
-            if (mPhotoChoose.size >= 3) {
-                photo_picker_fab_next.visibility = View.VISIBLE
+            if (mPhotoChoose.size < 60) {
+                mPhotoChoose.add(mAlbumImages?.get(mFolderPosition)!!.localImages[position])
+                container_rv_chosen_image.visibility = View.VISIBLE
+                photo_picker_tv_number_of_chosen_photo.text = getString(R.string.text_number,mPhotoChoose.size)
+                if (mPhotoChoose.size >= 3) {
+                    photo_picker_fab_next.visibility = View.VISIBLE
+                }
+                mLayoutManagerPhotoChoose?.scrollToPosition(mPhotoChoose.size - 1)
+                mAdapterPhotoChoose?.notifyDataSetChanged()
             }
-            mLayoutManagerPhotoChoose?.scrollToPosition(mPhotoChoose.size - 1)
-            mAdapterPhotoChoose?.notifyDataSetChanged()
         }
     }
 
@@ -66,6 +69,7 @@ class PhotoPickerActivity : AppCompatActivity() {
         PhotoChooseAdapter.OnClickRemoveItemListener { position ->
             if (position < mPhotoChoose.size) {
                 mPhotoChoose.removeAt(position)
+                photo_picker_tv_number_of_chosen_photo.text = getString(R.string.text_number,mPhotoChoose.size)
             }
             mAdapterPhotoChoose!!.notifyDataSetChanged()
             if (mPhotoChoose.size < 3) {
@@ -141,6 +145,7 @@ class PhotoPickerActivity : AppCompatActivity() {
         photo_picker_fab_next.setOnClickListener {
             onClickNextButton?.doOnClickNextButton(mPhotoChoose)
         }
+        photo_picker_tv_number_of_chosen_photo.text = getString(R.string.text_number,mPhotoChoose.size)
     }
 
     @RequiresApi(Build.VERSION_CODES.M)
@@ -297,6 +302,7 @@ class PhotoPickerActivity : AppCompatActivity() {
                 if (mPhotoChoose.size < 60) {
                     mPhotoChoose.add(localImage)
                     container_rv_chosen_image.visibility = View.VISIBLE
+                    photo_picker_tv_number_of_chosen_photo.text = getString(R.string.text_number,mPhotoChoose.size)
                     if (mPhotoChoose.size >= 3) {
                         photo_picker_fab_next.visibility = View.VISIBLE
                     }
