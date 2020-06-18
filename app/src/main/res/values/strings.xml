@@ -7,4 +7,7 @@
     <string name="do_you_want_to_save_this_image">Do you want to save this image?</string>
     <string name="yes">Yes</string>
     <string name="no">No</string>
+    <string name="save_image_fail">Image cannot be saved! Try another camera app!</string>
+    <string name="ok">OK</string>
+    <string name="empty"/>
 </resources>

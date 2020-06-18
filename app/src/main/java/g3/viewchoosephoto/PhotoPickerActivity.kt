@@ -27,11 +27,13 @@ import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
 import kotlinx.android.synthetic.main.activity_photo_picker.*
 import java.io.File
+import kotlin.math.roundToInt
 
 class PhotoPickerActivity : AppCompatActivity() {
 
     private lateinit var tabLayout: TabLayout
     private lateinit var viewPager: ViewPager2
+    private lateinit var adMobView: View
     private var mAlbumImages: ArrayList<AlbumImage>? = ArrayList()
     private var mPhotoChoose: ArrayList<LocalImage> = ArrayList()
     private var mFolderPosition: Int = 0
@@ -45,7 +47,7 @@ class PhotoPickerActivity : AppCompatActivity() {
     companion object {
         const val REQUEST_CODE_CAMERA = 111
         const val MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE = 102
-        const val OUTPUT_FOLDER_NAME = "VideoMakerSlideshow"
+        private const val OUTPUT_FOLDER_NAME = "VideoMakerSlideshow"
         private val DEFAULT_FOLDER_OUTPUT =
             Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)
                 .toString() + "/" + OUTPUT_FOLDER_NAME
@@ -88,14 +90,30 @@ class PhotoPickerActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_photo_picker)
+        initView()
+        resizeAdMobView()
         onPermissionFolder()
-        initViews()
+        initChosenImageRecyclerView()
     }
 
-    override fun onResume() {
-        mAlbumImages = ImageUtils.getAllImage(applicationContext) as ArrayList<AlbumImage>?
-        Log.d("congnm","activity onResume mAlumImages size: ${mAlbumImages?.get(0)?.localImages!!.size}")
-        super.onResume()
+    private fun resizeAdMobView() {
+        val screenDensity = ResizeView.getDisplayInfo().density
+        Log.d("congnm","screen density: $screenDensity")
+        val screenHeightInDp = ResizeView.getDisplayInfo().heightPixels.toDouble().roundToInt() / screenDensity
+        val adMovViewParams = adMobView.layoutParams
+        if (screenHeightInDp <= 400) {
+            adMovViewParams.height = (32 * screenDensity).toInt()
+        } else if (screenHeightInDp <= 720) {
+            adMovViewParams.height = (50 * screenDensity).toInt()
+        } else {
+            adMovViewParams.height = (90 * screenDensity).toInt()
+        }
+    }
+
+    private fun initView() {
+        viewPager = findViewById(R.id.photo_picker_view_pager)
+        tabLayout = findViewById(R.id.photo_picker_tab_layout_folder)
+        adMobView = findViewById(R.id.photo_picker_adMob_container)
     }
 
     private fun onPermissionFolder() {
@@ -111,8 +129,6 @@ class PhotoPickerActivity : AppCompatActivity() {
     }
 
     private fun setUpViewPagerWithTabLayout() {
-        viewPager = findViewById(R.id.photo_picker_view_pager)
-        tabLayout = findViewById(R.id.photo_picker_tab_layout_folder)
         viewPager.adapter = object : FragmentStateAdapter(this) {
             override fun getItemCount(): Int {
                 return mAlbumImages!!.size
@@ -120,7 +136,7 @@ class PhotoPickerActivity : AppCompatActivity() {
 
             override fun createFragment(position: Int): Fragment {
                 mCurrentFrag = PhotoViewerFragment.newInstance(mAlbumImages!!, position)
-                Log.d("congnm","createFragmentPager mAlumImages size: ${mAlbumImages?.get(0)?.localImages!!.size}")
+                Log.d("congnm","createFragmentPager $position")
                 mCurrentFrag.setListener(onItemClick)
                 return mCurrentFrag
             }
@@ -128,6 +144,7 @@ class PhotoPickerActivity : AppCompatActivity() {
         viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
                 mFolderPosition = position
+                viewPager.currentItem = position
                 super.onPageSelected(position)
             }
         })
@@ -138,7 +155,7 @@ class PhotoPickerActivity : AppCompatActivity() {
             }).attach()
     }
 
-    private fun initViews() {
+    private fun initChosenImageRecyclerView() {
         mAdapterPhotoChoose = PhotoChooseAdapter(applicationContext, mPhotoChoose)
         mAdapterPhotoChoose!!.setOnClickRemoveItemListener(onRemoveItemClickItemPhotoListener)
         mLayoutManagerPhotoChoose =
@@ -310,16 +327,29 @@ class PhotoPickerActivity : AppCompatActivity() {
             if (requestCode == REQUEST_CODE_CAMERA) {
                 val localImage = LocalImage()
                 localImage.path = pathSaveImageFromCamera
-                promptUserSaveImage()
-                if (mPhotoChoose.size < 60) {
-                    mPhotoChoose.add(localImage)
-                    container_rv_chosen_image.visibility = View.VISIBLE
-                    photo_picker_tv_number_of_chosen_photo.text = getString(R.string.text_number,mPhotoChoose.size)
-                    if (mPhotoChoose.size >= 3) {
-                        photo_picker_fab_next.visibility = View.VISIBLE
+                if (FileUtils.fileExists(pathSaveImageFromCamera)) {
+                    promptUserSaveImage()
+                    if (mPhotoChoose.size < 60) {
+                        mPhotoChoose.add(localImage)
+                        container_rv_chosen_image.visibility = View.VISIBLE
+                        photo_picker_tv_number_of_chosen_photo.text =
+                            getString(R.string.text_number, mPhotoChoose.size)
+                        if (mPhotoChoose.size >= 3) {
+                            photo_picker_fab_next.visibility = View.VISIBLE
+                        }
+                        mLayoutManagerPhotoChoose!!.scrollToPosition(mPhotoChoose.size - 1)
+                        mAdapterPhotoChoose!!.notifyDataSetChanged()
                     }
-                    mLayoutManagerPhotoChoose!!.scrollToPosition(mPhotoChoose.size - 1)
-                    mAdapterPhotoChoose!!.notifyDataSetChanged()
+                } else {
+                    showDialogConfirm(
+                        this,
+                        message = R.string.save_image_fail,
+                        idNo = R.string.empty,
+                        idYes = R.string.ok,
+                        isCancel = false,
+                        onYes = DialogInterface.OnClickListener { dialogInterface, _ -> dialogInterface.dismiss() },
+                        onNo = DialogInterface.OnClickListener { _, _ ->  }
+                    )
                 }
             }
         }
@@ -340,19 +370,18 @@ class PhotoPickerActivity : AppCompatActivity() {
     private fun onYesSaveImage() {
         val targetFile = File(this.mAlbumImages?.get(0)!!.path + System.currentTimeMillis() + ".jpg")
         Log.d("congnm","targetFilePath = ${targetFile.absolutePath} - pathSaveImage: $pathSaveImageFromCamera")
-        File(pathSaveImageFromCamera!!).copyTo(
-            target = targetFile,
-            overwrite = false
-        )
-        scanFile(
-            this, arrayOf(targetFile.absolutePath),
-            null
-        ) { path, uri ->
+            File(pathSaveImageFromCamera!!).copyTo(
+                target = targetFile,
+                overwrite = false
+            )
+            scanFile(
+                this, arrayOf(targetFile.absolutePath),
+                null
+            ) { path, uri ->
+                mAlbumImages = ImageUtils.getAllImage(applicationContext) as ArrayList<AlbumImage>?
+                Log.d("congnm", "onYesSaveImage ${viewPager.currentItem}")
+            }
             viewPager.currentItem = 0
-            mAlbumImages = ImageUtils.getAllImage(applicationContext) as ArrayList<AlbumImage>?
-            Log.d("congnm","activity onResume mAlumImages size: ${mAlbumImages?.get(0)?.localImages!!.size}")
-            mCurrentFrag.updatePhotoAdapter()
-        }
     }
 
     private fun callCamera() {
@@ -362,7 +391,6 @@ class PhotoPickerActivity : AppCompatActivity() {
         val image =
             File(path, "image.jpg" + System.currentTimeMillis())
         pathSaveImageFromCamera = image.absolutePath
-
         FunctionUtils.createFolder(DEFAULT_FOLDER_OUTPUT_TEMP)
         val i = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
         val uri = FileProvider.getUriForFile(

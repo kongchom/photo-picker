@@ -140,7 +140,7 @@
     <FrameLayout
         android:id="@+id/photo_picker_adMob_container"
         android:layout_width="match_parent"
-        android:layout_height="@dimen/_50sdp"
+        android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/_4sdp"
         android:background="@android:color/darker_gray"
         app:layout_constraintBottom_toBottomOf="parent"
