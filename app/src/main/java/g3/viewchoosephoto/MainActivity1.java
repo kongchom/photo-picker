@@ -34,9 +34,9 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-import g3.viewchoosephoto.adapter.FolderAdapter;
-import g3.viewchoosephoto.adapter.PhotoAdapter;
-import g3.viewchoosephoto.adapter.PhotoChooseAdapter;
+import g3.viewchoosephoto.ui.FolderAdapter;
+import g3.viewchoosephoto.ui.PhotoAdapter;
+import g3.viewchoosephoto.ui.PhotoChooseAdapter;
 import g3.viewchoosephoto.model.AlbumImage;
 import g3.viewchoosephoto.model.LocalImage;
 import g3.viewchoosephoto.util.FunctionUtils;

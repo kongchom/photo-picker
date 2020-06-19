@@ -14,7 +14,6 @@ import android.os.Environment
 import android.provider.MediaStore
 import android.util.Log
 import android.view.View
-import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -22,7 +21,6 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
-import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
@@ -37,7 +35,6 @@ import g3.viewchoosephoto.model.AlbumImage
 import g3.viewchoosephoto.model.LocalImage
 import g3.viewchoosephoto.util.FileUtils
 import g3.viewchoosephoto.util.FunctionUtils.*
-import g3.viewchoosephoto.util.ImageUtils
 import g3.viewchoosephoto.util.ResizeView
 import g3.viewchoosephoto.viewmodel.PhotoPickerViewModel
 import kotlinx.android.synthetic.main.activity_photo_picker.*
@@ -52,7 +49,6 @@ class PhotoPickerActivity : AppCompatActivity() {
     private lateinit var tabLayout: TabLayout
     private lateinit var viewPager: ViewPager2
     private lateinit var adMobView: View
-    private var mAlbumImages: ArrayList<AlbumImage>? = ArrayList()
     private var mPhotoChoose: ArrayList<LocalImage> = ArrayList()
     private var mFolderPosition: Int = 0
     private lateinit var mCurrentFrag: PhotoViewerFragment
@@ -66,8 +62,6 @@ class PhotoPickerActivity : AppCompatActivity() {
     //Inject viewModel
     @Inject
     lateinit var photoPickerViewModel: PhotoPickerViewModel
-//    lateinit var photoPickerViewModelFactory: ViewModelProvider.Factory
-//    private val viewModel by viewModels<PhotoPickerViewModel> { photoPickerViewModelFactory }
 
     companion object {
         const val REQUEST_CODE_CAMERA = 111
@@ -89,7 +83,7 @@ class PhotoPickerActivity : AppCompatActivity() {
         ItemClickFromPagerFragment {
         override fun onItemClickInFragment(position: Int) {
             if (mPhotoChoose.size < 60) {
-                mPhotoChoose.add(mAlbumImages?.get(mFolderPosition)!!.localImages[position])
+                mPhotoChoose.add(photoPickerViewModel.mListAlbum[mFolderPosition]!!.localImages[position])
                 container_rv_chosen_image.visibility = View.VISIBLE
                 photo_picker_tv_number_of_chosen_photo.text = getString(R.string.text_number,mPhotoChoose.size)
                 if (mPhotoChoose.size >= 3) {
@@ -120,20 +114,24 @@ class PhotoPickerActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_photo_picker)
+        initDagger()
+        onPermissionFolder()
+        initView()
+        photoPickerViewModel.loadData()
+        photoPickerViewModel.listLocalAlbum.observe(this, Observer {
+            setUpViewPagerWithTabLayout(it as ArrayList<AlbumImage>)
+        })
+        resizeAdMobView()
+        initChosenImageRecyclerView()
+    }
+
+    private fun initDagger() {
         Timber.plant(DebugTree())
         appComponent = DaggerAppComponent
             .builder()
             .appModule(AppModule(this))
             .build()
         appComponent.inject(this)
-        photoPickerViewModel.loadData()
-        photoPickerViewModel.listCameraImage.observe(this, Observer {
-            Timber.d("congnm viewModel test ${it.size}")
-        })
-        initView()
-        resizeAdMobView()
-        onPermissionFolder()
-        initChosenImageRecyclerView()
     }
 
     /**
@@ -141,7 +139,6 @@ class PhotoPickerActivity : AppCompatActivity() {
      */
     private fun resizeAdMobView() {
         val screenDensity = ResizeView.getDisplayInfo().density
-        Log.d("congnm","screen density: $screenDensity")
         val screenHeightInDp = ResizeView.getDisplayInfo().heightPixels.toDouble().roundToInt() / screenDensity
         val adMovViewParams = adMobView.layoutParams
         if (screenHeightInDp <= 400) {
@@ -163,22 +160,17 @@ class PhotoPickerActivity : AppCompatActivity() {
         PermissionNewVideoUtils.askForPermissionFolder(
             this,
             MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE
-        ) { initData() }
+        ) { }
     }
 
-    private fun initData() {
-        mAlbumImages = ImageUtils.getAllImage(applicationContext) as ArrayList<AlbumImage>?
-        setUpViewPagerWithTabLayout()
-    }
-
-    private fun setUpViewPagerWithTabLayout() {
+    private fun setUpViewPagerWithTabLayout(albumImages: ArrayList<AlbumImage>) {
         viewPager.adapter = object : FragmentStateAdapter(this) {
             override fun getItemCount(): Int {
-                return mAlbumImages!!.size
+                return albumImages.size
             }
 
             override fun createFragment(position: Int): Fragment {
-                mCurrentFrag = PhotoViewerFragment.newInstance(mAlbumImages!!, position)
+                mCurrentFrag = PhotoViewerFragment.newInstance(albumImages, position)
                 Log.d("congnm","createFragmentPager $position")
                 mCurrentFrag.setListener(onItemClick)
                 return mCurrentFrag
@@ -194,7 +186,7 @@ class PhotoPickerActivity : AppCompatActivity() {
         viewPager.orientation = ViewPager2.ORIENTATION_HORIZONTAL
         TabLayoutMediator(tabLayout, viewPager,
             TabLayoutMediator.TabConfigurationStrategy { tab, position ->
-                tab.text = mAlbumImages!![position].name
+                tab.text = albumImages[position].name
             }).attach()
     }
 
@@ -244,7 +236,7 @@ class PhotoPickerActivity : AppCompatActivity() {
             }
             if (requestCode == MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE) {
                 if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    initData()
+                    photoPickerViewModel.loadData()
                 }
             }
         } else {
@@ -423,8 +415,7 @@ class PhotoPickerActivity : AppCompatActivity() {
     }
 
     private fun onYesSaveImage() {
-        val targetFile = File(this.mAlbumImages?.get(0)!!.path + System.currentTimeMillis() + ".jpg")
-        Log.d("congnm","targetFilePath = ${targetFile.absolutePath} - pathSaveImage: $pathSaveImageFromCamera")
+        val targetFile = File(photoPickerViewModel.mListAlbum[0].path + System.currentTimeMillis() + ".jpg")
             File(pathSaveImageFromCamera!!).copyTo(
                 target = targetFile,
                 overwrite = false
@@ -433,12 +424,9 @@ class PhotoPickerActivity : AppCompatActivity() {
                 this, arrayOf(targetFile.absolutePath),
                 null
             ) { path, uri ->
-                mAlbumImages = ImageUtils.getAllImage(applicationContext) as ArrayList<AlbumImage>?
-                Log.d("congnm", "onYesSaveImage ${viewPager.currentItem}")
-                //TODO
+                photoPickerViewModel.reloadData()
             }
             viewPager.currentItem = 0
-        photoPickerViewModel.reloadData()
     }
 
     private fun callCamera() {

@@ -21,10 +21,6 @@ class PhotoViewerFragment: Fragment() {
         onItemClick = listener
     }
 
-    fun updatePhotoAdapter() {
-        photoAdapter?.notifyDataSetChanged()
-    }
-
     private val onClickItemPhotoListener = PhotoAdapter.OnClickItemPhotoListener { position ->
         onItemClick?.onItemClickInFragment(position)
     }

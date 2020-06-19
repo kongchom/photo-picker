@@ -10,25 +10,25 @@ import javax.inject.Inject
 class PhotoPickerViewModel @Inject constructor(
     private val localMediaRepository: ILocalMediaRepository
 ) : ViewModel() {
-
+    var mListAlbum: ArrayList<AlbumImage> = ArrayList()
     var listLocalAlbum = MutableLiveData<List<AlbumImage>>().apply {
         value = emptyList()
     }
+
     var listCameraImage = MutableLiveData<List<LocalImage>>().apply {
         value = emptyList()
     }
 
-
     fun loadData() {
         val listAlbum = localMediaRepository.getAllLocalAlbums()
-        val cameraImages = listAlbum[0].localImages
-        listCameraImage.value = ArrayList(cameraImages)
+        mListAlbum = ArrayList(listAlbum)
+        listLocalAlbum.value = ArrayList(listAlbum)
     }
 
     fun reloadData() {
         val listAlbum = localMediaRepository.getAllLocalAlbums()
-        val cameraImages = listAlbum[0].localImages
-        listCameraImage.postValue(cameraImages)
+        mListAlbum = ArrayList(listAlbum)
+        listLocalAlbum.postValue(listAlbum)
     }
 
 }
