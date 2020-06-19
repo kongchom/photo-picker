@@ -1,4 +1,4 @@
-package g3.viewchoosephoto.adapter;
+package g3.viewchoosephoto.ui;
 
 import android.app.Activity;
 import android.util.DisplayMetrics;

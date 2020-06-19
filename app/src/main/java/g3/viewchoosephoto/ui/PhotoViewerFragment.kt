@@ -6,7 +6,6 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.GridLayoutManager
-import g3.viewchoosephoto.adapter.PhotoAdapter
 import g3.viewchoosephoto.R
 import g3.viewchoosephoto.model.AlbumImage
 import g3.viewchoosephoto.model.LocalImage

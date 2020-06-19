@@ -14,28 +14,37 @@ import android.os.Environment
 import android.provider.MediaStore
 import android.util.Log
 import android.view.View
+import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
 import g3.viewchoosephoto.util.PermissionNewVideoUtils
-import g3.viewchoosephoto.adapter.PhotoChooseAdapter
 import g3.viewchoosephoto.R
+import g3.viewchoosephoto.di.AppComponent
+import g3.viewchoosephoto.di.AppModule
+import g3.viewchoosephoto.di.DaggerAppComponent
 import g3.viewchoosephoto.model.AlbumImage
 import g3.viewchoosephoto.model.LocalImage
 import g3.viewchoosephoto.util.FileUtils
 import g3.viewchoosephoto.util.FunctionUtils.*
 import g3.viewchoosephoto.util.ImageUtils
 import g3.viewchoosephoto.util.ResizeView
+import g3.viewchoosephoto.viewmodel.PhotoPickerViewModel
 import kotlinx.android.synthetic.main.activity_photo_picker.*
+import timber.log.Timber
+import timber.log.Timber.DebugTree
 import java.io.File
+import javax.inject.Inject
 import kotlin.math.roundToInt
 
 class PhotoPickerActivity : AppCompatActivity() {
@@ -52,6 +61,13 @@ class PhotoPickerActivity : AppCompatActivity() {
     private var pathSaveImageFromCamera: String? = null
     private var onClickBackButton: OnClickBackButton? = null
     private var onClickNextButton: OnClickNextButton? = null
+    private lateinit var appComponent: AppComponent
+
+    //Inject viewModel
+    @Inject
+    lateinit var photoPickerViewModel: PhotoPickerViewModel
+//    lateinit var photoPickerViewModelFactory: ViewModelProvider.Factory
+//    private val viewModel by viewModels<PhotoPickerViewModel> { photoPickerViewModelFactory }
 
     companion object {
         const val REQUEST_CODE_CAMERA = 111
@@ -104,6 +120,16 @@ class PhotoPickerActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_photo_picker)
+        Timber.plant(DebugTree())
+        appComponent = DaggerAppComponent
+            .builder()
+            .appModule(AppModule(this))
+            .build()
+        appComponent.inject(this)
+        photoPickerViewModel.loadData()
+        photoPickerViewModel.listCameraImage.observe(this, Observer {
+            Timber.d("congnm viewModel test ${it.size}")
+        })
         initView()
         resizeAdMobView()
         onPermissionFolder()
@@ -409,8 +435,10 @@ class PhotoPickerActivity : AppCompatActivity() {
             ) { path, uri ->
                 mAlbumImages = ImageUtils.getAllImage(applicationContext) as ArrayList<AlbumImage>?
                 Log.d("congnm", "onYesSaveImage ${viewPager.currentItem}")
+                //TODO
             }
             viewPager.currentItem = 0
+        photoPickerViewModel.reloadData()
     }
 
     private fun callCamera() {
