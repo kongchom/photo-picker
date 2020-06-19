@@ -1,4 +1,4 @@
-package g3.viewchoosephoto;
+package g3.viewchoosephoto.util;
 
 import android.Manifest;
 import android.app.Activity;
@@ -6,6 +6,8 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 
 import androidx.core.content.ContextCompat;
+
+import g3.viewchoosephoto.PermissionListener;
 
 public class PermissionNewVideoUtils {
 

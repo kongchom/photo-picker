@@ -1,4 +1,4 @@
-package g3.viewchoosephoto;
+package g3.viewchoosephoto.util;
 
 import android.content.Context;
 import android.content.Intent;
@@ -15,7 +15,7 @@ import com.bumptech.glide.request.RequestOptions;
 
 import java.io.File;
 
-class FunctionUtils {
+public class FunctionUtils {
 
     public static DisplayMetrics getDisplayInfo() {
         return Resources.getSystem().getDisplayMetrics();

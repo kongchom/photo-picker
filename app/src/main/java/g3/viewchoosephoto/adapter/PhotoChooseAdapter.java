@@ -1,4 +1,4 @@
-package g3.viewchoosephoto;
+package g3.viewchoosephoto.adapter;
 
 import android.content.Context;
 import android.util.DisplayMetrics;
@@ -13,6 +13,10 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.io.File;
 import java.util.List;
+
+import g3.viewchoosephoto.R;
+import g3.viewchoosephoto.model.LocalImage;
+import g3.viewchoosephoto.util.FunctionUtils;
 
 public class PhotoChooseAdapter extends RecyclerView.Adapter<PhotoChooseAdapter.ItemViewHolder> {
 

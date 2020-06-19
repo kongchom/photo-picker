@@ -1,4 +1,4 @@
-package g3.viewchoosephoto;
+package g3.viewchoosephoto.model;
 
 import android.net.Uri;
 import android.os.Parcel;

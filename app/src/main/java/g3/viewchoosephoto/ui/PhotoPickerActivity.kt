@@ -1,4 +1,4 @@
-package g3.viewchoosephoto
+package g3.viewchoosephoto.ui
 
 import android.Manifest
 import android.app.Activity
@@ -25,6 +25,15 @@ import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
+import g3.viewchoosephoto.util.PermissionNewVideoUtils
+import g3.viewchoosephoto.adapter.PhotoChooseAdapter
+import g3.viewchoosephoto.R
+import g3.viewchoosephoto.model.AlbumImage
+import g3.viewchoosephoto.model.LocalImage
+import g3.viewchoosephoto.util.FileUtils
+import g3.viewchoosephoto.util.FunctionUtils.*
+import g3.viewchoosephoto.util.ImageUtils
+import g3.viewchoosephoto.util.ResizeView
 import kotlinx.android.synthetic.main.activity_photo_picker.*
 import java.io.File
 import kotlin.math.roundToInt
@@ -56,7 +65,12 @@ class PhotoPickerActivity : AppCompatActivity() {
         const val PROVIDER = "g3.viewchoosephoto.provider"
     }
 
-    private var onItemClick = object : ItemClickFromPagerFragment {
+    /**
+     *
+     *
+     */
+    private var onItemClick = object :
+        ItemClickFromPagerFragment {
         override fun onItemClickInFragment(position: Int) {
             if (mPhotoChoose.size < 60) {
                 mPhotoChoose.add(mAlbumImages?.get(mFolderPosition)!!.localImages[position])
@@ -96,6 +110,9 @@ class PhotoPickerActivity : AppCompatActivity() {
         initChosenImageRecyclerView()
     }
 
+    /**
+     *
+     */
     private fun resizeAdMobView() {
         val screenDensity = ResizeView.getDisplayInfo().density
         Log.d("congnm","screen density: $screenDensity")
@@ -156,14 +173,19 @@ class PhotoPickerActivity : AppCompatActivity() {
     }
 
     private fun initChosenImageRecyclerView() {
-        mAdapterPhotoChoose = PhotoChooseAdapter(applicationContext, mPhotoChoose)
+        mAdapterPhotoChoose = PhotoChooseAdapter(
+            applicationContext,
+            mPhotoChoose
+        )
         mAdapterPhotoChoose!!.setOnClickRemoveItemListener(onRemoveItemClickItemPhotoListener)
         mLayoutManagerPhotoChoose =
             LinearLayoutManager(applicationContext, LinearLayoutManager.HORIZONTAL, false)
         photo_picker_rv_chosen_image.adapter = mAdapterPhotoChoose
         photo_picker_rv_chosen_image.layoutManager = mLayoutManagerPhotoChoose
         photo_picker_iv_take_picture.setOnClickListener {
-            PermissionNewVideoUtils.askForPermissionCamera(this, REQUEST_CODE_CAMERA) {
+            PermissionNewVideoUtils.askForPermissionCamera(this,
+                REQUEST_CODE_CAMERA
+            ) {
                 callCamera()
             }
         }
@@ -242,6 +264,9 @@ class PhotoPickerActivity : AppCompatActivity() {
         )
     }
 
+    /**
+     *
+     */
     private fun showDialogConfirm(
         activity: Activity?, message: Int,
         idYes: Int,
@@ -268,8 +293,10 @@ class PhotoPickerActivity : AppCompatActivity() {
         onCancel: DialogInterface.OnClickListener?, isCancel: Boolean
     ) {
         showDialogConfirm(
-            activity, R.string.app_name,
-            R.string.app_name, R.string.app_name, isCancel, onRetry, onCancel
+            activity,
+            R.string.app_name,
+            R.string.app_name,
+            R.string.app_name, isCancel, onRetry, onCancel
         )
     }
 
@@ -298,8 +325,10 @@ class PhotoPickerActivity : AppCompatActivity() {
         onCancel: DialogInterface.OnClickListener?, isCancel: Boolean
     ) {
         showDialogConfirm(
-            activity, R.string.app_name,
-            R.string.app_name, R.string.app_name, isCancel, onSettings, onCancel
+            activity,
+            R.string.app_name,
+            R.string.app_name,
+            R.string.app_name, isCancel, onSettings, onCancel
         )
     }
 
@@ -311,7 +340,7 @@ class PhotoPickerActivity : AppCompatActivity() {
         showRememberDialog(
             context as Activity,
             DialogInterface.OnClickListener { _, _ ->
-                FunctionUtils.openAppSettings(
+                openAppSettings(
                     context,
                     context.getPackageName()
                 )
@@ -387,11 +416,11 @@ class PhotoPickerActivity : AppCompatActivity() {
     private fun callCamera() {
         // save to cache dir
         val path = File(filesDir, "Temp")
-        FunctionUtils.createFolder(path.absolutePath)
+        createFolder(path.absolutePath)
         val image =
             File(path, "image.jpg" + System.currentTimeMillis())
         pathSaveImageFromCamera = image.absolutePath
-        FunctionUtils.createFolder(DEFAULT_FOLDER_OUTPUT_TEMP)
+        createFolder(DEFAULT_FOLDER_OUTPUT_TEMP)
         val i = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
         val uri = FileProvider.getUriForFile(
             this,
@@ -410,7 +439,9 @@ class PhotoPickerActivity : AppCompatActivity() {
             )
         }
         try {
-            startActivityForResult(i, REQUEST_CODE_CAMERA)
+            startActivityForResult(i,
+                REQUEST_CODE_CAMERA
+            )
         } catch (ex: ActivityNotFoundException) {
             ex.printStackTrace()
         }

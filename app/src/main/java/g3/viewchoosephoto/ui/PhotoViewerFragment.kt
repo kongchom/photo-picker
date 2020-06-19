@@ -1,4 +1,4 @@
-package g3.viewchoosephoto
+package g3.viewchoosephoto.ui
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -6,6 +6,10 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.GridLayoutManager
+import g3.viewchoosephoto.adapter.PhotoAdapter
+import g3.viewchoosephoto.R
+import g3.viewchoosephoto.model.AlbumImage
+import g3.viewchoosephoto.model.LocalImage
 import kotlinx.android.synthetic.main.fragment_folder_photo_viewer.*
 
 class PhotoViewerFragment: Fragment() {
@@ -41,7 +45,8 @@ class PhotoViewerFragment: Fragment() {
     private fun initDataRecyclerView() {
         val args = arguments
         mLocalImages = args?.getSerializable(KEY_ALBUM_LIST) as ArrayList<LocalImage>
-        photoAdapter = PhotoAdapter(context,mLocalImages)
+        photoAdapter =
+            PhotoAdapter(context, mLocalImages)
         photoAdapter?.setOnClickItemPhotoListener(onClickItemPhotoListener)
         folder_photo_viewer_recycler_view.adapter = photoAdapter
         folder_photo_viewer_recycler_view.layoutManager = GridLayoutManager(context,3, GridLayoutManager.VERTICAL,false)

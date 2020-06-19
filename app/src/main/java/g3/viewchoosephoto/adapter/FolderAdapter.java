@@ -1,4 +1,4 @@
-package g3.viewchoosephoto;
+package g3.viewchoosephoto.adapter;
 
 import android.app.Activity;
 import android.util.DisplayMetrics;
@@ -14,6 +14,11 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+
+import g3.viewchoosephoto.R;
+import g3.viewchoosephoto.model.AlbumImage;
+import g3.viewchoosephoto.util.FunctionUtils;
+import g3.viewchoosephoto.util.ResizeView;
 
 public class FolderAdapter extends RecyclerView.Adapter {
     public interface OnClickItemFolderListener {

@@ -1,4 +1,4 @@
-package g3.viewchoosephoto;
+package g3.viewchoosephoto.util;
 
 import android.Manifest;
 import android.content.Context;
@@ -12,7 +12,10 @@ import androidx.core.app.ActivityCompat;
 import java.util.ArrayList;
 import java.util.List;
 
-class ImageUtils {
+import g3.viewchoosephoto.model.AlbumImage;
+import g3.viewchoosephoto.model.LocalImage;
+
+public class ImageUtils {
     public static List<AlbumImage> getAllImage(Context context) {
         if (ActivityCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
             return null;

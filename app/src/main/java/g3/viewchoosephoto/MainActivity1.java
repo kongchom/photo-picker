@@ -13,8 +13,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
-import android.provider.Settings;
-import android.text.Html;
 import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
@@ -35,6 +33,15 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+
+import g3.viewchoosephoto.adapter.FolderAdapter;
+import g3.viewchoosephoto.adapter.PhotoAdapter;
+import g3.viewchoosephoto.adapter.PhotoChooseAdapter;
+import g3.viewchoosephoto.model.AlbumImage;
+import g3.viewchoosephoto.model.LocalImage;
+import g3.viewchoosephoto.util.FunctionUtils;
+import g3.viewchoosephoto.util.ImageUtils;
+import g3.viewchoosephoto.util.PermissionNewVideoUtils;
 
 public class MainActivity1 extends Activity implements View.OnClickListener,
         FolderAdapter.OnClickItemFolderListener,
