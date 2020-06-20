@@ -11,6 +11,6 @@ class LocalMediaRepository @Inject constructor(
 ) : ILocalMediaRepository {
 
     override fun getAllLocalAlbums() : List<AlbumImage> {
-        return ImageUtils.getAllImage(context)
+        return ImageUtils.getAllImage(context)?: ArrayList()
     }
 }

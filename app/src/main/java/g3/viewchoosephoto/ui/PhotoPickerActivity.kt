@@ -3,19 +3,16 @@ package g3.viewchoosephoto.ui
 import android.Manifest
 import android.app.Activity
 import android.content.ActivityNotFoundException
-import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.MediaScannerConnection.scanFile
 import android.os.Build
 import android.os.Bundle
-import android.os.Environment
 import android.provider.MediaStore
 import android.util.Log
 import android.view.View
 import androidx.annotation.RequiresApi
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.FileProvider
@@ -26,6 +23,11 @@ import androidx.viewpager2.adapter.FragmentStateAdapter
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.tabs.TabLayoutMediator
+import g3.viewchoosephoto.AppConstant.DEFAULT_FOLDER_OUTPUT_TEMP
+import g3.viewchoosephoto.AppConstant.MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE
+import g3.viewchoosephoto.AppConstant.PROVIDER
+import g3.viewchoosephoto.AppConstant.REQUEST_CODE_CAMERA
+import g3.viewchoosephoto.BuildConfig
 import g3.viewchoosephoto.util.PermissionNewVideoUtils
 import g3.viewchoosephoto.R
 import g3.viewchoosephoto.di.AppComponent
@@ -33,6 +35,9 @@ import g3.viewchoosephoto.di.AppModule
 import g3.viewchoosephoto.di.DaggerAppComponent
 import g3.viewchoosephoto.model.AlbumImage
 import g3.viewchoosephoto.model.LocalImage
+import g3.viewchoosephoto.util.DialogUtil
+import g3.viewchoosephoto.util.DialogUtil.showDenyDialog
+import g3.viewchoosephoto.util.DialogUtil.showDialogConfirm
 import g3.viewchoosephoto.util.FileUtils
 import g3.viewchoosephoto.util.FunctionUtils.*
 import g3.viewchoosephoto.util.ResizeView
@@ -49,8 +54,6 @@ class PhotoPickerActivity : AppCompatActivity() {
     private lateinit var tabLayout: TabLayout
     private lateinit var viewPager: ViewPager2
     private lateinit var adMobView: View
-    private var mPhotoChoose: ArrayList<LocalImage> = ArrayList()
-    private var mFolderPosition: Int = 0
     private lateinit var mCurrentFrag: PhotoViewerFragment
     private var mLayoutManagerPhotoChoose: LinearLayoutManager? = null
     private var mAdapterPhotoChoose: PhotoChooseAdapter? = null
@@ -61,54 +64,28 @@ class PhotoPickerActivity : AppCompatActivity() {
 
     //Inject viewModel
     @Inject
-    lateinit var photoPickerViewModel: PhotoPickerViewModel
-
-    companion object {
-        const val REQUEST_CODE_CAMERA = 111
-        const val MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE = 102
-        private const val OUTPUT_FOLDER_NAME = "VideoMakerSlideshow"
-        private val DEFAULT_FOLDER_OUTPUT =
-            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)
-                .toString() + "/" + OUTPUT_FOLDER_NAME
-        val DEFAULT_FOLDER_OUTPUT_TEMP = "$DEFAULT_FOLDER_OUTPUT/.Temp"
-
-        const val PROVIDER = "g3.viewchoosephoto.provider"
-    }
+    lateinit var mViewModel: PhotoPickerViewModel
 
     /**
-     *
+     *Callback on user select image on image list recycler view
      *
      */
     private var onItemClick = object :
         ItemClickFromPagerFragment {
         override fun onItemClickInFragment(position: Int) {
-            if (mPhotoChoose.size < 60) {
-                mPhotoChoose.add(photoPickerViewModel.mListAlbum[mFolderPosition]!!.localImages[position])
-                container_rv_chosen_image.visibility = View.VISIBLE
-                photo_picker_tv_number_of_chosen_photo.text = getString(R.string.text_number,mPhotoChoose.size)
-                if (mPhotoChoose.size >= 3) {
-                    photo_picker_fab_next.visibility = View.VISIBLE
-                }
-                mLayoutManagerPhotoChoose?.scrollToPosition(mPhotoChoose.size - 1)
-                mAdapterPhotoChoose?.notifyDataSetChanged()
-            }
+            mViewModel.addImageToPhotoChoseList(position)
+            updateViewChoseImageRv()
         }
     }
 
+    /**
+     *Callback on user remove image on chose images recycler view
+     *
+     */
     private var onRemoveItemClickItemPhotoListener =
         PhotoChooseAdapter.OnClickRemoveItemListener { position ->
-            if (position < mPhotoChoose.size) {
-                mPhotoChoose.removeAt(position)
-                photo_picker_tv_number_of_chosen_photo.text = getString(R.string.text_number,mPhotoChoose.size)
-            }
+            mViewModel.removeImage(position)
             mAdapterPhotoChoose!!.notifyDataSetChanged()
-            if (mPhotoChoose.size < 3) {
-                photo_picker_fab_next.visibility = View.GONE
-            }
-            if (mPhotoChoose.isEmpty()) {
-                container_rv_chosen_image.visibility = View.GONE
-                photo_picker_fab_next.visibility = View.GONE
-            }
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -117,16 +94,23 @@ class PhotoPickerActivity : AppCompatActivity() {
         initDagger()
         onPermissionFolder()
         initView()
-        photoPickerViewModel.loadData()
-        photoPickerViewModel.listLocalAlbum.observe(this, Observer {
+        resizeAdMobView()
+        mViewModel.listLocalAlbum.observe(this, Observer {
             setUpViewPagerWithTabLayout(it as ArrayList<AlbumImage>)
         })
-        resizeAdMobView()
-        initChosenImageRecyclerView()
+        mViewModel.listPhotoChose.observe(this, Observer {
+            initChosenImageRecyclerView(it)
+        })
+        mViewModel.sizeOfListPhotoChose.observe(this, Observer {
+            photo_picker_tv_number_of_chosen_photo.text = getString(R.string.text_number, it)
+            setChosenImageRvVisibility(it)
+        })
     }
 
     private fun initDagger() {
-        Timber.plant(DebugTree())
+        if (BuildConfig.DEBUG) {
+            Timber.plant(DebugTree())
+        }
         appComponent = DaggerAppComponent
             .builder()
             .appModule(AppModule(this))
@@ -139,14 +123,19 @@ class PhotoPickerActivity : AppCompatActivity() {
      */
     private fun resizeAdMobView() {
         val screenDensity = ResizeView.getDisplayInfo().density
-        val screenHeightInDp = ResizeView.getDisplayInfo().heightPixels.toDouble().roundToInt() / screenDensity
+        val screenHeightInDp =
+            ResizeView.getDisplayInfo().heightPixels.toDouble().roundToInt() / screenDensity
         val adMovViewParams = adMobView.layoutParams
-        if (screenHeightInDp <= 400) {
-            adMovViewParams.height = (32 * screenDensity).toInt()
-        } else if (screenHeightInDp <= 720) {
-            adMovViewParams.height = (50 * screenDensity).toInt()
-        } else {
-            adMovViewParams.height = (90 * screenDensity).toInt()
+        when {
+            screenHeightInDp <= 400 -> {
+                adMovViewParams.height = (32 * screenDensity).toInt()
+            }
+            screenHeightInDp <= 720 -> {
+                adMovViewParams.height = (50 * screenDensity).toInt()
+            }
+            else -> {
+                adMovViewParams.height = (90 * screenDensity).toInt()
+            }
         }
     }
 
@@ -154,6 +143,14 @@ class PhotoPickerActivity : AppCompatActivity() {
         viewPager = findViewById(R.id.photo_picker_view_pager)
         tabLayout = findViewById(R.id.photo_picker_tab_layout_folder)
         adMobView = findViewById(R.id.photo_picker_adMob_container)
+        photo_picker_iv_take_picture.setOnClickListener {
+            PermissionNewVideoUtils.askForPermissionCamera(
+                this,
+                REQUEST_CODE_CAMERA
+            ) {
+                callCamera()
+            }
+        }
     }
 
     private fun onPermissionFolder() {
@@ -171,14 +168,13 @@ class PhotoPickerActivity : AppCompatActivity() {
 
             override fun createFragment(position: Int): Fragment {
                 mCurrentFrag = PhotoViewerFragment.newInstance(albumImages, position)
-                Log.d("congnm","createFragmentPager $position")
                 mCurrentFrag.setListener(onItemClick)
                 return mCurrentFrag
             }
         }
         viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
-                mFolderPosition = position
+                mViewModel.setFolderPosition(position)
                 viewPager.currentItem = position
                 super.onPageSelected(position)
             }
@@ -190,30 +186,24 @@ class PhotoPickerActivity : AppCompatActivity() {
             }).attach()
     }
 
-    private fun initChosenImageRecyclerView() {
+    private fun initChosenImageRecyclerView(listPhotoChose: List<LocalImage>) {
         mAdapterPhotoChoose = PhotoChooseAdapter(
             applicationContext,
-            mPhotoChoose
+            listPhotoChose
         )
         mAdapterPhotoChoose!!.setOnClickRemoveItemListener(onRemoveItemClickItemPhotoListener)
         mLayoutManagerPhotoChoose =
             LinearLayoutManager(applicationContext, LinearLayoutManager.HORIZONTAL, false)
         photo_picker_rv_chosen_image.adapter = mAdapterPhotoChoose
         photo_picker_rv_chosen_image.layoutManager = mLayoutManagerPhotoChoose
-        photo_picker_iv_take_picture.setOnClickListener {
-            PermissionNewVideoUtils.askForPermissionCamera(this,
-                REQUEST_CODE_CAMERA
-            ) {
-                callCamera()
-            }
-        }
         photo_picker_btn_back.setOnClickListener {
             onClickBackButton?.doOnClickBackButton()
         }
         photo_picker_fab_next.setOnClickListener {
-            onClickNextButton?.doOnClickNextButton(mPhotoChoose)
+            onClickNextButton?.doOnClickNextButton(listPhotoChose)
         }
-        photo_picker_tv_number_of_chosen_photo.text = getString(R.string.text_number,mPhotoChoose.size)
+        photo_picker_tv_number_of_chosen_photo.text =
+            getString(R.string.text_number, listPhotoChose.size)
     }
 
     @RequiresApi(Build.VERSION_CODES.M)
@@ -236,18 +226,18 @@ class PhotoPickerActivity : AppCompatActivity() {
             }
             if (requestCode == MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE) {
                 if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    photoPickerViewModel.loadData()
+                    mViewModel.loadData()
                 }
             }
         } else {
             if (requestCode == REQUEST_CODE_CAMERA) {
                 if (!shouldShowRequestPermissionRationale(Manifest.permission.CAMERA)) {
-                    openAppSettings(this, isCancel = false, isFinishActivity = false)
+                    DialogUtil.openAppSettings(this, isCancel = false, isFinishActivity = false)
                 }
             }
             if (requestCode == MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE) {
                 if (!shouldShowRequestPermissionRationale(Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
-                    openAppSettings(this, isCancel = false, isFinishActivity = true)
+                    DialogUtil.openAppSettings(this, isCancel = false, isFinishActivity = true)
                     return
                 }
                 showDenyDialog(
@@ -261,146 +251,29 @@ class PhotoPickerActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     *
-     * @param mActivity
-     * @param permission
-     * @param REQUEST_CODE
-     */
-    private fun requestPermission(
-        mActivity: Activity?,
-        permission: String,
-        REQUEST_CODE: Int
-    ) {
-        val permissionsNeeded: MutableList<String> =
-            java.util.ArrayList()
-        permissionsNeeded.add(permission)
-        ActivityCompat.requestPermissions(
-            mActivity!!,
-            permissionsNeeded.toTypedArray(),
-            REQUEST_CODE
-        )
-    }
-
-    /**
-     *
-     */
-    private fun showDialogConfirm(
-        activity: Activity?, message: Int,
-        idYes: Int,
-        idNo: Int,
-        isCancel: Boolean,
-        onYes: DialogInterface.OnClickListener?,
-        onNo: DialogInterface.OnClickListener?
-    ) {
-        if (activity != null && !activity.isFinishing) {
-            val builder =
-                AlertDialog.Builder(activity)
-            builder.setCancelable(isCancel)
-            builder.setMessage(message)
-            builder.setPositiveButton(idYes, onYes)
-            builder.setNegativeButton(idNo, onNo)
-            val dialog = builder.create()
-            dialog.show()
-        }
-    }
-
-    private fun showDenyDialog(
-        activity: Activity?,
-        onRetry: DialogInterface.OnClickListener?,
-        onCancel: DialogInterface.OnClickListener?, isCancel: Boolean
-    ) {
-        showDialogConfirm(
-            activity,
-            R.string.app_name,
-            R.string.app_name,
-            R.string.app_name, isCancel, onRetry, onCancel
-        )
-    }
-
-    private fun showDenyDialog(
-        context: Context,
-        permission: String,
-        requestCode: Int,
-        isFinishActivity: Boolean,
-        isCancel: Boolean
-    ) {
-        showDenyDialog(
-            context as Activity,
-            DialogInterface.OnClickListener { _, _ ->
-                requestPermission(
-                    context, permission, requestCode
-                )
-            },
-            DialogInterface.OnClickListener { _, _ -> if (isFinishActivity) context.finish() },
-            isCancel
-        )
-    }
-
-    private fun showRememberDialog(
-        activity: Activity?,
-        onSettings: DialogInterface.OnClickListener?,
-        onCancel: DialogInterface.OnClickListener?, isCancel: Boolean
-    ) {
-        showDialogConfirm(
-            activity,
-            R.string.app_name,
-            R.string.app_name,
-            R.string.app_name, isCancel, onSettings, onCancel
-        )
-    }
-
-    private fun openAppSettings(
-        context: Context,
-        isCancel: Boolean,
-        isFinishActivity: Boolean
-    ) {
-        showRememberDialog(
-            context as Activity,
-            DialogInterface.OnClickListener { _, _ ->
-                openAppSettings(
-                    context,
-                    context.getPackageName()
-                )
-            },
-            DialogInterface.OnClickListener { _, _ -> if (isFinishActivity) context.finish() },
-            isCancel
-        )
-    }
-
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (resultCode == Activity.RESULT_OK) {
             if (requestCode == REQUEST_CODE_CAMERA) {
-                val localImage = LocalImage()
-                localImage.path = pathSaveImageFromCamera
                 if (FileUtils.fileExists(pathSaveImageFromCamera)) {
                     promptUserSaveImage()
-                    if (mPhotoChoose.size < 60) {
-                        mPhotoChoose.add(localImage)
-                        container_rv_chosen_image.visibility = View.VISIBLE
-                        photo_picker_tv_number_of_chosen_photo.text =
-                            getString(R.string.text_number, mPhotoChoose.size)
-                        if (mPhotoChoose.size >= 3) {
-                            photo_picker_fab_next.visibility = View.VISIBLE
-                        }
-                        mLayoutManagerPhotoChoose!!.scrollToPosition(mPhotoChoose.size - 1)
-                        mAdapterPhotoChoose!!.notifyDataSetChanged()
-                    }
-                } else {
-                    showDialogConfirm(
-                        this,
-                        message = R.string.save_image_fail,
-                        idNo = R.string.empty,
-                        idYes = R.string.ok,
-                        isCancel = false,
-                        onYes = DialogInterface.OnClickListener { dialogInterface, _ -> dialogInterface.dismiss() },
-                        onNo = DialogInterface.OnClickListener { _, _ ->  }
-                    )
+                    mViewModel.addImageFromCamera(pathSaveImageFromCamera!!,false)
+                    updateViewChoseImageRv()
                 }
+            } else {
+                showDialogConfirm(
+                    this,
+                    message = R.string.save_image_fail,
+                    idNo = R.string.empty,
+                    idYes = R.string.ok,
+                    isCancel = false,
+                    onYes = DialogInterface.OnClickListener { dialogInterface, _ -> dialogInterface.dismiss() },
+                    onNo = DialogInterface.OnClickListener { _, _ -> }
+                )
             }
         }
     }
+
 
     private fun promptUserSaveImage() {
         showDialogConfirm(
@@ -409,24 +282,18 @@ class PhotoPickerActivity : AppCompatActivity() {
             idNo = R.string.no,
             idYes = R.string.yes,
             isCancel = false,
-            onYes = DialogInterface.OnClickListener { _, _ -> onYesSaveImage() },
-            onNo = DialogInterface.OnClickListener { _, _ ->  }
-            )
-    }
-
-    private fun onYesSaveImage() {
-        val targetFile = File(photoPickerViewModel.mListAlbum[0].path + System.currentTimeMillis() + ".jpg")
-            File(pathSaveImageFromCamera!!).copyTo(
-                target = targetFile,
-                overwrite = false
-            )
-            scanFile(
-                this, arrayOf(targetFile.absolutePath),
-                null
-            ) { path, uri ->
-                photoPickerViewModel.reloadData()
-            }
-            viewPager.currentItem = 0
+            onYes = DialogInterface.OnClickListener { _, _ ->
+                mViewModel.addImageFromCamera(pathSaveImageFromCamera!!, true)
+                scanFile(
+                    this, arrayOf(mViewModel.mTargetFile.absolutePath),
+                    null
+                ) { _, _ ->
+                    mViewModel.reloadImageList()
+                }
+                viewPager.currentItem = 0
+            },
+            onNo = DialogInterface.OnClickListener { _, _ -> }
+        )
     }
 
     private fun callCamera() {
@@ -455,12 +322,37 @@ class PhotoPickerActivity : AppCompatActivity() {
             )
         }
         try {
-            startActivityForResult(i,
+            startActivityForResult(
+                i,
                 REQUEST_CODE_CAMERA
             )
         } catch (ex: ActivityNotFoundException) {
             ex.printStackTrace()
         }
+    }
+
+    private fun setChosenImageRvVisibility(size: Int) {
+        when {
+            size >= 3 -> {
+                container_rv_chosen_image.visibility = View.VISIBLE
+                photo_picker_fab_next.visibility = View.VISIBLE
+            }
+            (size in 1..2) -> {
+                photo_picker_fab_next.visibility = View.GONE
+                container_rv_chosen_image.visibility = View.VISIBLE
+            }
+            else -> {
+                photo_picker_fab_next.visibility = View.GONE
+                container_rv_chosen_image.visibility = View.GONE
+            }
+        }
+    }
+
+    private fun updateViewChoseImageRv() {
+        mLayoutManagerPhotoChoose?.scrollToPosition(
+            mViewModel.sizeOfListPhotoChose.value!!.minus(1)
+        )
+        mAdapterPhotoChoose?.notifyDataSetChanged()
     }
 
     interface ItemClickFromPagerFragment {
@@ -476,7 +368,7 @@ class PhotoPickerActivity : AppCompatActivity() {
     }
 
     interface OnClickNextButton {
-        fun doOnClickNextButton(chosenImages: ArrayList<LocalImage>)
+        fun doOnClickNextButton(chosenImages: List<LocalImage>)
     }
 
     fun setListenerOnClickNextButton(listener: OnClickNextButton) {
