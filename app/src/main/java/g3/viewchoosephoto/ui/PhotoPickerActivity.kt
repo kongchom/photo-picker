@@ -10,7 +10,6 @@ import android.media.MediaScannerConnection.scanFile
 import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
-import android.util.Log
 import android.view.View
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
@@ -62,7 +61,6 @@ class PhotoPickerActivity : AppCompatActivity() {
     private var onClickNextButton: OnClickNextButton? = null
     private lateinit var appComponent: AppComponent
 
-    //Inject viewModel
     @Inject
     lateinit var mViewModel: PhotoPickerViewModel
 
@@ -103,10 +101,14 @@ class PhotoPickerActivity : AppCompatActivity() {
         })
         mViewModel.sizeOfListPhotoChose.observe(this, Observer {
             photo_picker_tv_number_of_chosen_photo.text = getString(R.string.text_number, it)
+            updateViewChoseImageRv()
             setChosenImageRvVisibility(it)
         })
     }
 
+    /**
+     *
+     */
     private fun initDagger() {
         if (BuildConfig.DEBUG) {
             Timber.plant(DebugTree())
@@ -139,6 +141,9 @@ class PhotoPickerActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     *
+     */
     private fun initView() {
         viewPager = findViewById(R.id.photo_picker_view_pager)
         tabLayout = findViewById(R.id.photo_picker_tab_layout_folder)
@@ -153,6 +158,9 @@ class PhotoPickerActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     *
+     */
     private fun onPermissionFolder() {
         PermissionNewVideoUtils.askForPermissionFolder(
             this,
@@ -160,6 +168,9 @@ class PhotoPickerActivity : AppCompatActivity() {
         ) { }
     }
 
+    /**
+     *
+     */
     private fun setUpViewPagerWithTabLayout(albumImages: ArrayList<AlbumImage>) {
         viewPager.adapter = object : FragmentStateAdapter(this) {
             override fun getItemCount(): Int {
@@ -186,6 +197,9 @@ class PhotoPickerActivity : AppCompatActivity() {
             }).attach()
     }
 
+    /**
+     *
+     */
     private fun initChosenImageRecyclerView(listPhotoChose: List<LocalImage>) {
         mAdapterPhotoChoose = PhotoChooseAdapter(
             applicationContext,
@@ -258,7 +272,6 @@ class PhotoPickerActivity : AppCompatActivity() {
                 if (FileUtils.fileExists(pathSaveImageFromCamera)) {
                     promptUserSaveImage()
                     mViewModel.addImageFromCamera(pathSaveImageFromCamera!!,false)
-                    updateViewChoseImageRv()
                 }
             } else {
                 showDialogConfirm(
@@ -274,7 +287,9 @@ class PhotoPickerActivity : AppCompatActivity() {
         }
     }
 
-
+    /**
+     *
+     */
     private fun promptUserSaveImage() {
         showDialogConfirm(
             this,
@@ -296,6 +311,9 @@ class PhotoPickerActivity : AppCompatActivity() {
         )
     }
 
+    /**
+     *
+     */
     private fun callCamera() {
         // save to cache dir
         val path = File(filesDir, "Temp")
@@ -331,6 +349,9 @@ class PhotoPickerActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     *
+     */
     private fun setChosenImageRvVisibility(size: Int) {
         when {
             size >= 3 -> {
@@ -348,6 +369,9 @@ class PhotoPickerActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     *
+     */
     private fun updateViewChoseImageRv() {
         mLayoutManagerPhotoChoose?.scrollToPosition(
             mViewModel.sizeOfListPhotoChose.value!!.minus(1)

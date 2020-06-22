@@ -36,15 +36,24 @@ class PhotoPickerViewModel @Inject constructor(
         listLocalAlbum.notifyObserver()
     }
 
+    /**
+     *Get list image then push to UI thread
+     */
     fun reloadImageList() {
         val listAlbum = localMediaRepository.getAllLocalAlbums()
         listLocalAlbum.postValue(listAlbum as MutableList<AlbumImage>?)
     }
 
+    /**
+     *
+     */
    fun setFolderPosition(position: Int) {
         currentFolder = position
     }
 
+    /**
+     *
+     */
     fun addImageToPhotoChoseList(position: Int) {
         if (sizeOfListPhotoChose.value!! < 60) {
             listPhotoChose.value?.add(listLocalAlbum.value!![currentFolder].localImages[position])
@@ -53,11 +62,17 @@ class PhotoPickerViewModel @Inject constructor(
         }
     }
 
+    /**
+     *
+     */
     fun removeImage(position: Int) {
         listPhotoChose.value?.removeAt(position)
         sizeOfListPhotoChose.value = listPhotoChose.value?.size
     }
 
+    /**
+     *
+     */
     fun addImageFromCamera(localImagePath: String, isSavingImage: Boolean) {
         val image = LocalImage()
         image.path = localImagePath
